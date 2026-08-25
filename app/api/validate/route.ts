@@ -1,13 +1,2 @@
-import { NextResponse } from 'next/server';
-import { validateIdea } from '@/lib/validation';
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const idea = typeof body.idea === 'string' ? body.idea.trim() : '';
-    const customer = typeof body.customer === 'string' ? body.customer.trim() : '';
-    if (!idea || !customer) return NextResponse.json({ error: 'Idea and target customer are required.' }, { status: 400 });
-    if (idea.length > 5000 || customer.length > 500) return NextResponse.json({ error: 'Input is too long.' }, { status: 400 });
-    return NextResponse.json(validateIdea({ idea, customer }));
-  } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }); }
-}
+import {NextResponse} from "next/server";import {demoValidation,researchIdea,scoreEvidence} from "@/lib/validation"
+export async function POST(req:Request){try{const{idea,customer}=await req.json();if(typeof idea!=="string"||idea.trim().length<10||typeof customer!=="string"||customer.trim().length<2)return NextResponse.json({error:"Give us a specific startup idea and target customer."},{status:400});const sources=await researchIdea(idea.trim(),customer.trim());if(!sources.length)return NextResponse.json({...demoValidation(),researchStatus:"awaiting_provider_credentials",message:"The scoring engine is live, but live research credentials are not configured for this deployment. No live-market claim is being made."});const evidence=sources.map(s=>({category:"demand",claim:s.snippet.slice(0,500),sourceUrl:s.url,sourceName:s.title,sourceType:s.provider,polarity:"neutral" as const,strength:55,excerpt:s.snippet.slice(0,700)}));return NextResponse.json({...scoreEvidence(evidence),researchStatus:"complete"})}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Validation failed"},{status:500})}}

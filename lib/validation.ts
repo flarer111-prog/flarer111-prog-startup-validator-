@@ -1,18 +1,5 @@
-export type ValidationInput = { idea: string; customer: string };
-
-const demandWords = ['save','automate','urgent','expensive','slow','risk','scam','fraud','compliance','jobs','sales','money','waste','pain'];
-const monetizationWords = ['pay','subscription','fee','commission','business','enterprise','save','revenue','cost'];
-
-export function validateIdea({ idea, customer }: ValidationInput) {
-  const text = `${idea} ${customer}`.toLowerCase();
-  const demandHits = demandWords.filter(w => text.includes(w)).length;
-  const moneyHits = monetizationWords.filter(w => text.includes(w)).length;
-  const specificity = Math.min(25, Math.floor(idea.trim().length / 18));
-  const customerScore = customer.trim().length >= 12 ? 20 : customer.trim().length >= 6 ? 12 : 5;
-  const demandScore = Math.min(30, 10 + demandHits * 4);
-  const monetizationScore = Math.min(25, 8 + moneyHits * 3);
-  const problemScore = Math.min(20, 6 + (idea.length > 80 ? 10 : idea.length > 35 ? 6 : 2));
-  const score = Math.min(100, specificity + customerScore + demandScore + monetizationScore + problemScore);
-  const verdict = score >= 75 ? 'Strong initial signal' : score >= 55 ? 'Promising — needs evidence' : 'Weak initial signal';
-  return { score, verdict, demand: demandScore >= 22 ? 'High' : demandScore >= 15 ? 'Medium' : 'Low', competition: 'Unknown', monetization: monetizationScore >= 18 ? 'Clearer' : 'Unclear', summary: 'This is a preliminary heuristic, not proof of market demand. The next engine layer will replace assumptions with external evidence.', nextSteps: ['Search for recent customer demand and complaints.', 'Map direct and indirect competitors and their pricing.', 'Look for willingness-to-pay signals and existing alternatives.'] };
-}
+export type Verdict="BUILD"|"PIVOT"|"KILL"|"INSUFFICIENT_EVIDENCE"
+export type Evidence={category:string;claim:string;sourceUrl?:string;sourceName?:string;sourceType?:string;polarity:"positive"|"negative"|"neutral"|"mixed";strength:number;excerpt?:string}
+const clamp=(n:number)=>Math.max(0,Math.min(100,n))
+export function scoreEvidence(evidence:Evidence[]){const avg=(c:string,f=35)=>{const x=evidence.filter(e=>e.category===c);return x.length?x.reduce((s,e)=>s+e.strength*(e.polarity==="negative"?-.55:1),0)/x.length:f};const problem=clamp(avg("problem")),demand=clamp(avg("demand")),competition=clamp(100-avg("competition",45)),monetization=clamp(avg("monetization")),acquisition=clamp(avg("acquisition")),risk=clamp(100-avg("risk",40));const score=clamp(problem*.18+demand*.24+competition*.14+monetization*.18+acquisition*.12+risk*.14);const confidence=clamp(25+Math.min(55,evidence.length*4)+Math.min(20,new Set(evidence.map(e=>e.sourceType||"unknown")).size*5));const verdict:Verdict=confidence<45?"INSUFFICIENT_EVIDENCE":score>=72?"BUILD":score>=52?"PIVOT":"KILL";return{score:+score.toFixed(1),verdict,confidence:+confidence.toFixed(1),summary:verdict==="BUILD"?"Strong enough evidence to justify a focused build and paid validation.":verdict==="PIVOT"?"The opportunity has signal, but positioning or economics need refinement.":verdict==="KILL"?"Evidence does not currently justify further investment without a materially different angle.":"More independent evidence is required before a high-confidence decision.",demand:+demand.toFixed(1),problem:+problem.toFixed(1),competition:+competition.toFixed(1),monetization:+monetization.toFixed(1),acquisition:+acquisition.toFixed(1),risk:+risk.toFixed(1),evidence,nextSteps:verdict==="BUILD"?["Interview 10 target buyers","Run a pricing/commitment test","Launch a narrow MVP"]:["Identify the weakest score","Collect independent evidence for that assumption","Retest before building"]}}
+export function demoValidation(){return scoreEvidence([{category:"problem",claim:"Problem evidence not yet verified.",polarity:"neutral",strength:35,sourceType:"baseline"},{category:"demand",claim:"Live demand not yet verified.",polarity:"neutral",strength:30,sourceType:"baseline"},{category:"competition",claim:"Competitive landscape not yet mapped.",polarity:"neutral",strength:45,sourceType:"baseline"},{category:"monetization",claim:"Willingness to pay not yet tested.",polarity:"neutral",strength:30,sourceType:"baseline"},{category:"acquisition",claim:"Acquisition economics not yet verified.",polarity:"neutral",strength:30,sourceType:"baseline"},{category:"risk",claim:"Structural risks not yet researched.",polarity:"neutral",strength:40,sourceType:"baseline"}])}
