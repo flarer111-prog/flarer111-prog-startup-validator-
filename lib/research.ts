@@ -1,27 +1,9 @@
-export type ResearchSource = { title: string; url: string; snippet: string; provider: string; publishedAt?: string }
-const env = (x: string) => process.env[x]
-
-async function post(url: string, body: unknown, headers: Record<string,string> = {}) {
-  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body), cache: 'no-store' })
-  if (!r.ok) throw new Error(String(r.status))
-  return r.json()
-}
-
-export async function researchIdea(idea: string, customer: string) {
-  const q = `${idea} ${customer} demand customers competitors pricing complaints alternatives market`
-  const out: ResearchSource[] = []
-  if (env('EXA_API_KEY')) {
-    try {
-      const x = await post('https://api.exa.ai/search', { query: q, numResults: 10, contents: { highlights: { maxCharacters: 900 } } }, { 'x-api-key': env('EXA_API_KEY')! })
-      for (const r of x.results || []) out.push({ title: r.title, url: r.url, snippet: (r.highlights || []).join(' '), provider: 'exa', publishedAt: r.publishedDate })
-    } catch {}
-  }
-  if (env('TAVILY_API_KEY')) {
-    try {
-      const x = await post('https://api.tavily.com/search', { api_key: env('TAVILY_API_KEY'), query: q, max_results: 10, search_depth: 'advanced' })
-      for (const r of x.results || []) out.push({ title: r.title, url: r.url, snippet: r.content || '', provider: 'tavily', publishedAt: r.published_date })
-    } catch {}
-  }
-  const seen = new Set<string>()
-  return out.filter(x => x.url && !seen.has(x.url) && seen.add(x.url)).slice(0, 20)
+import type {Evidence} from './validation'
+const env=(x:string)=>process.env[x]
+const post=async(url:string,body:any,headers:Record<string,string>)=>{const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body),cache:'no-store'});if(!r.ok)throw new Error(`${r.status}`);return r.json()}
+const classify=(text:string)=>{const t=text.toLowerCase();if(/price|pay|cost|revenue|subscription|pricing/.test(t))return['monetization','positive'];if(/competitor|alternative|market leader|similar/.test(t))return['competition',/dominant|crowded|leader/.test(t)?'negative':'neutral'];if(/complaint|pain|problem|frustrat|need|challenge/.test(t))return['problem','positive'];if(/demand|search|growth|adoption|popular|users|customers/.test(t))return['demand','positive'];if(/risk|regulation|lawsuit|fraud|privacy|security|dependency/.test(t))return['risk','negative'];if(/acquisition|channel|community|distribution|advertis/.test(t))return['acquisition','positive'];return['demand','neutral']}
+export async function researchIdea(idea:string,customer:string,location:string){const q=`${idea} target customer ${customer} ${location} demand customer complaints competitors alternatives pricing willingness to pay acquisition risks`;const out:Evidence[]=[]
+ if(env('EXA_API_KEY'))try{const x=await post('https://api.exa.ai/search',{query:q,numResults:12,contents:{highlights:{maxCharacters:1200}}},{'x-api-key':env('EXA_API_KEY')!});for(const r of x.results||[]) {const [category,polarity]=classify(`${r.title} ${r.highlights?.join(' ')||''}`);out.push({category,claim:(r.highlights?.[0]||r.title||'').slice(0,500),sourceUrl:r.url,sourceName:r.title,sourceType:'Exa',polarity:polarity as any,strength:Math.round((r.score||.55)*100),excerpt:r.highlights?.join(' ').slice(0,900),publishedAt:r.publishedDate,retrievedAt:new Date().toISOString(),freshness:r.publishedDate?((Date.now()-new Date(r.publishedDate).getTime())<180*86400000?'recent':'stale'):'unknown'})}}catch{}
+ if(env('TAVILY_API_KEY'))try{const x=await post('https://api.tavily.com/search',{query:q,max_results:12,search_depth:'advanced',include_raw_content:false},{authorization:`Bearer ${env('TAVILY_API_KEY')}`});for(const r of x.results||[]) {const [category,polarity]=classify(`${r.title} ${r.content||''}`);out.push({category,claim:(r.content||r.title||'').slice(0,500),sourceUrl:r.url,sourceName:r.title,sourceType:'Tavily',polarity:polarity as any,strength:Math.round((r.score||.55)*100),excerpt:(r.content||'').slice(0,900),publishedAt:r.published_date,retrievedAt:new Date().toISOString(),freshness:r.published_date?((Date.now()-new Date(r.published_date).getTime())<180*86400000?'recent':'stale'):'unknown'})}}catch{}
+ const seen=new Set<string>();return out.filter(e=>e.sourceUrl&&!seen.has(e.sourceUrl)&&(seen.add(e.sourceUrl),true)).slice(0,40)
 }
