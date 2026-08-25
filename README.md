@@ -1,20 +1,21 @@
-# Startup Validator
+# VentureProof
 
-An evidence-driven startup idea validation platform.
+Evidence-first startup validation. VentureProof stress-tests an idea across demand, problem severity, competition, monetisation, acquisition and risk, while separating heuristic scoring from evidence confidence.
 
-## MVP
-- Next.js App Router + TypeScript
-- Transparent initial scoring engine
-- Validation API route
-- Supabase-ready backend architecture
-- Designed for live evidence collection through the research stack
+## Production principles
 
-## Validation pipeline
-1. Understand the problem and target customer.
-2. Collect independent market evidence.
-3. Detect demand signals and customer pain.
-4. Map competitors, alternatives, and pricing.
-5. Evaluate monetization and differentiation.
-6. Produce an evidence-backed score with confidence and citations.
+- Never fabricate market evidence.
+- A score and confidence are separate signals.
+- Missing research credentials produce an explicit evidence-limited state.
+- Validation errors are handled with a recoverable UI boundary.
+- Secrets belong in Vercel environment variables, never in Git.
 
-The current score is explicitly heuristic. It must not be presented as verified market evidence until the research adapters are connected.
+## Stack
+
+Next.js · TypeScript · Vercel · Supabase · PostHog · Sentry
+
+## Validation flow
+
+Idea → structured scoring → evidence readiness → verdict → next actions.
+
+The product is intentionally conservative: insufficient evidence is a valid outcome.

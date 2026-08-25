@@ -1,0 +1,1 @@
+export default function Loading(){return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',background:'#07090d',color:'#b7ff4a',fontFamily:'monospace'}}>VENTUREPROOF · LOADING…</main>}
