@@ -20,7 +20,7 @@ const lanes:Lane[]=[
 ]
 
 const clean=(s:string)=>s.replace(/\s+/g,' ').trim()
-const validUrl=(u:any)=>typeof u==='string'&&/^https?:\/\//i.test(u)
+const validUrl=(u:any):u is string=>typeof u==='string'&&/^https?:\/\//i.test(u)
 const polarity=(lane:Lane,text:string):'positive'|'negative'|'neutral'|'mixed'=>{const t=text.toLowerCase();if(lane.category==='competition')return'negative';if(lane.category==='risk')return'negative';if(lane.category==='demand'||lane.category==='problem'||lane.category==='acquisition')return'positive';if(lane.category==='monetization')return /pay|paid|price|pricing|cost|revenue|subscription|orders|sales/.test(t)?'positive':'neutral';return'neutral'}
 const freshness=(date?:string):Evidence['freshness']=>{if(!date)return'unknown';const t=new Date(date).getTime();if(!Number.isFinite(t))return'unknown';const age=(Date.now()-t)/86400000;return age<=30?'fresh':age<=180?'recent':age<=730?'stale':'stale'}
 
