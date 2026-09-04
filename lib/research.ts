@@ -46,5 +46,5 @@ export async function researchIdea(idea:string,customer:string,location:string){
  }
  await Promise.all(lanes.map(run))
  const seen=new Set<string>();
- return out.filter(e=>validUrl(e.sourceUrl)&&!seen.has(e.sourceUrl)&&(seen.add(e.sourceUrl),true)).slice(0,90)
+ return out.filter(e=>{const u=e.sourceUrl;if(!validUrl(u))return false;if(seen.has(u))return false;seen.add(u);return true}).slice(0,90)
 }
