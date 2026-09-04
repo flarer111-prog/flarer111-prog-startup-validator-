@@ -43,14 +43,14 @@ export async function researchIdea(idea:string,customer:string,location:string){
    if(l.domains)body.includeDomains=l.domains
    if(l.fresh)body.startPublishedDate=new Date(Date.now()-90*86400000).toISOString()
    const x=await post('https://api.exa.ai/search',body,{'x-api-key':exaKey})
-   for(const r of x.results||[])const cls=classifyEvidenceLane(l,r.title||'',(r.highlights||[]).join(' '));out.push({category:cls.category,lane:l.name,claim:clean(r.highlights?.[0]||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean((r.highlights||[]).join(' ')).slice(0,1100),publishedAt:r.publishedDate,retrievedAt:new Date().toISOString(),freshness:freshness(r.publishedDate),sourcePublisher:r.author||undefined})
+   for(const r of x.results||[]){const cls=classifyEvidenceLane(l,r.title||'',(r.highlights||[]).join(' '));out.push({category:cls.category,lane:l.name,claim:clean(r.highlights?.[0]||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean((r.highlights||[]).join(' ')).slice(0,1100),publishedAt:r.publishedDate,retrievedAt:new Date().toISOString(),freshness:freshness(r.publishedDate),sourcePublisher:r.author||undefined})}
   }catch(err){console.error(`VentureProof Exa ${l.name} failed:`,err instanceof Error?err.message:'unknown')}
   const tavilyKey=env('TAVILY_API_KEY')
   if(tavilyKey)try{
    const body:any={query:q,max_results:6,search_depth:'advanced',include_raw_content:false}
    if(l.domains)body.include_domains=l.domains
    const x=await post('https://api.tavily.com/search',body,{authorization:`Bearer ${tavilyKey}`})
-   for(const r of x.results||[])const cls=classifyEvidenceLane(l,r.title||'',r.content||'');out.push({category:cls.category,lane:l.name,claim:clean(r.content||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean(r.content||'').slice(0,1100),publishedAt:r.published_date,retrievedAt:new Date().toISOString(),freshness:freshness(r.published_date)})
+   for(const r of x.results||[]){const cls=classifyEvidenceLane(l,r.title||'',r.content||'');out.push({category:cls.category,lane:l.name,claim:clean(r.content||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean(r.content||'').slice(0,1100),publishedAt:r.published_date,retrievedAt:new Date().toISOString(),freshness:freshness(r.published_date)})}
   }catch(err){console.error(`VentureProof Tavily ${l.name} failed:`,err instanceof Error?err.message:'unknown')}
  }
  await Promise.all(lanes.map(run))
