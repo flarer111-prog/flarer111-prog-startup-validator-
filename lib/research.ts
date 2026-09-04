@@ -16,11 +16,20 @@ const lanes:Lane[]=[
  {name:'Founder books & frameworks',category:'context',sourceType:'BOOK FRAMEWORK',query:(i,c,l)=>`"${i}" "The Mom Test" "The Lean Startup" "Obviously Awesome" "Traction" founder advice`},
  {name:'Competition & substitutes',category:'competition',sourceType:'COMPETITOR',query:(i,c,l)=>`"${i}" direct competitors alternatives appointment setting agencies lead generation agencies cold calling services sales development firms outbound prospecting providers B2B ${c} ${l} official pricing`},
  {name:'Pricing & willingness to pay',category:'monetization',sourceType:'PRICING',query:(i,c,l)=>`"${i}" pricing customers pay subscription cost willingness to pay ${c} ${l}`},
- {name:'Risks & regulation',category:'risk',sourceType:'RISK',query:(i,c,l)=>`"${i}" risks regulation privacy security fraud barriers ${l}`},
+ {name:'Risks & regulation',category:'risk',sourceType:'RISK',query:(i,c,l)=>`"${i}" legal compliance privacy data protection TCPA GDPR PECR CAN-SPAM do-not-call consent call recording security spam deliverability operational capacity list quality cold calling outbound telemarketing risks ${c} ${l}`},
 ]
 
 const clean=(s:string)=>s.replace(/\s+/g,' ').trim()
 const validUrl=(u:any):u is string=>typeof u==='string'&&/^https?:\/\//i.test(u)
+const classifyEvidenceLane=(lane:Lane,title:string,body:string):{category:string;sourceType:string;polarity:Evidence['polarity']}=>{
+ const t=`${title} ${body}`.toLowerCase()
+ const competitor=/lead generation agency|appointment setting (services|agency)|cold calling services|sales development (agency|firm|services)|outsourced sdr|prospecting agency|sales outsourcing|book (qualified )?meetings|qualified leads|b2b lead generation/.test(t)
+ const actualRisk=/tcp(a|f)|gdpr|pecr|can-spam|do[- ]not[- ]call|dnc|consent|call recording|data protection|privacy|security breach|spam|deliverability|compliance|regulation|telemarketing law|legal risk|fraud|operational capacity|list quality/.test(t)
+ if(competitor&&!actualRisk)return {category:'competition',sourceType:'COMPETITOR',polarity:'negative'}
+ if(lane.category==='risk'&&!actualRisk)return {category:'context',sourceType:'RISK CONTEXT',polarity:'neutral'}
+ return {category:lane.category,sourceType:lane.sourceType,polarity:polarity(lane,t)}
+}
+
 const polarity=(lane:Lane,text:string):'positive'|'negative'|'neutral'|'mixed'=>{const t=text.toLowerCase();if(lane.category==='competition')return'negative';if(lane.category==='risk')return'negative';if(lane.category==='demand'||lane.category==='problem'||lane.category==='acquisition')return'positive';if(lane.category==='monetization')return /pay|paid|price|pricing|cost|revenue|subscription|orders|sales/.test(t)?'positive':'neutral';return'neutral'}
 const freshness=(date?:string):Evidence['freshness']=>{if(!date)return'unknown';const t=new Date(date).getTime();if(!Number.isFinite(t))return'unknown';const age=(Date.now()-t)/86400000;return age<=30?'fresh':age<=180?'recent':age<=730?'stale':'stale'}
 
@@ -34,14 +43,14 @@ export async function researchIdea(idea:string,customer:string,location:string){
    if(l.domains)body.includeDomains=l.domains
    if(l.fresh)body.startPublishedDate=new Date(Date.now()-90*86400000).toISOString()
    const x=await post('https://api.exa.ai/search',body,{'x-api-key':exaKey})
-   for(const r of x.results||[])out.push({category:l.category,lane:l.name,claim:clean(r.highlights?.[0]||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:l.sourceType,polarity:polarity(l,`${r.title} ${(r.highlights||[]).join(' ')}`),strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean((r.highlights||[]).join(' ')).slice(0,1100),publishedAt:r.publishedDate,retrievedAt:new Date().toISOString(),freshness:freshness(r.publishedDate),sourcePublisher:r.author||undefined})
+   for(const r of x.results||[])const cls=classifyEvidenceLane(l,r.title||'',(r.highlights||[]).join(' '));out.push({category:cls.category,lane:l.name,claim:clean(r.highlights?.[0]||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean((r.highlights||[]).join(' ')).slice(0,1100),publishedAt:r.publishedDate,retrievedAt:new Date().toISOString(),freshness:freshness(r.publishedDate),sourcePublisher:r.author||undefined})
   }catch(err){console.error(`VentureProof Exa ${l.name} failed:`,err instanceof Error?err.message:'unknown')}
   const tavilyKey=env('TAVILY_API_KEY')
   if(tavilyKey)try{
    const body:any={query:q,max_results:6,search_depth:'advanced',include_raw_content:false}
    if(l.domains)body.include_domains=l.domains
    const x=await post('https://api.tavily.com/search',body,{authorization:`Bearer ${tavilyKey}`})
-   for(const r of x.results||[])out.push({category:l.category,lane:l.name,claim:clean(r.content||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:l.sourceType,polarity:polarity(l,`${r.title} ${(r.highlights||[]).join(' ')}`),strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean(r.content||'').slice(0,1100),publishedAt:r.published_date,retrievedAt:new Date().toISOString(),freshness:freshness(r.published_date)})
+   for(const r of x.results||[])const cls=classifyEvidenceLane(l,r.title||'',r.content||'');out.push({category:cls.category,lane:l.name,claim:clean(r.content||r.title||'').slice(0,500),sourceUrl:validUrl(r.url)?r.url:undefined,sourceName:r.title,sourceType:cls.sourceType,polarity:cls.polarity,strength:Math.round(Math.max(.35,Math.min(1,r.score||.55))*100)*(l.weight||1),excerpt:clean(r.content||'').slice(0,1100),publishedAt:r.published_date,retrievedAt:new Date().toISOString(),freshness:freshness(r.published_date)})
   }catch(err){console.error(`VentureProof Tavily ${l.name} failed:`,err instanceof Error?err.message:'unknown')}
  }
  await Promise.all(lanes.map(run))
