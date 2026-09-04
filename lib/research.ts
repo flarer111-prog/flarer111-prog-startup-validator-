@@ -14,7 +14,7 @@ const lanes:Lane[]=[
  {name:'Current news',category:'context',sourceType:'NEWS',query:(i,c,l)=>`"${i}" latest news market customers industry ${l} 2026`,fresh:true},
  {name:'Expert analysis & outlook',category:'context',sourceType:'EXPERT ANALYSIS',query:(i,c,l)=>`"${i}" expert analysis market outlook forecast industry expectations ${l} 2026`},
  {name:'Founder books & frameworks',category:'context',sourceType:'BOOK FRAMEWORK',query:(i,c,l)=>`"${i}" "The Mom Test" "The Lean Startup" "Obviously Awesome" "Traction" founder advice`},
- {name:'Competition & substitutes',category:'competition',sourceType:'COMPETITOR',query:(i,c,l)=>`"${i}" competitors alternatives substitutes companies pricing ${l}`},
+ {name:'Competition & substitutes',category:'competition',sourceType:'COMPETITOR',query:(i,c,l)=>`"${i}" direct competitors alternatives appointment setting agencies lead generation agencies cold calling services sales development firms outbound prospecting providers B2B ${c} ${l} official pricing`},
  {name:'Pricing & willingness to pay',category:'monetization',sourceType:'PRICING',query:(i,c,l)=>`"${i}" pricing customers pay subscription cost willingness to pay ${c} ${l}`},
  {name:'Risks & regulation',category:'risk',sourceType:'RISK',query:(i,c,l)=>`"${i}" risks regulation privacy security fraud barriers ${l}`},
 ]
